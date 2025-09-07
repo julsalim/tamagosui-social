@@ -8,12 +8,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { queryKeyOwnedPet } from "./useQueryOwnedPet";
+import { queryKeyOwnedPets } from "./useQueryOwnedPets";
 import { CLOCK_ID, MODULE_NAME, PACKAGE_ID } from "@/constants/contract";
 
 const mutationKeyAdoptPet = ["mutate", "adopt-pet"];
 
 type UseMutateAdoptPetParams = {
   name: string;
+  imageUrl: string;
 };
 
 export function useMutateAdoptPet() {
@@ -24,13 +26,13 @@ export function useMutateAdoptPet() {
 
   return useMutation({
     mutationKey: mutationKeyAdoptPet,
-    mutationFn: async ({ name }: UseMutateAdoptPetParams) => {
+  mutationFn: async ({ name, imageUrl }: UseMutateAdoptPetParams) => {
       if (!currentAccount) throw new Error("No connected account");
 
       const tx = new Transaction();
       tx.moveCall({
         target: `${PACKAGE_ID}::${MODULE_NAME}::adopt_pet`,
-        arguments: [tx.pure.string(name), tx.object(CLOCK_ID)],
+    arguments: [tx.pure.string(name), tx.pure.string(imageUrl), tx.object(CLOCK_ID)],
       });
 
       const result = await signAndExecute({ transaction: tx });
@@ -46,7 +48,8 @@ export function useMutateAdoptPet() {
     },
     onSuccess: (response) => {
       toast.success(`Pet adopted successfully! Tx: ${response.digest}`);
-      queryClient.invalidateQueries({ queryKey: queryKeyOwnedPet() });
+  queryClient.invalidateQueries({ queryKey: queryKeyOwnedPet() });
+  queryClient.invalidateQueries({ queryKey: queryKeyOwnedPets() });
     },
     onError: (error) => {
       console.error("Error adopting pet:", error);

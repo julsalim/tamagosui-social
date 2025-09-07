@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -39,6 +40,10 @@ import { useMutatePlayWithPet } from "@/hooks/useMutatePlayWithPet";
 import { useMutateWakeUpPet } from "@/hooks/useMutateWakeUpPet";
 import { useMutateWorkForCoins } from "@/hooks/useMutateWorkForCoins";
 import { useQueryGameBalance } from "@/hooks/useQueryGameBalance";
+import { useQueryFriendList } from "@/hooks/useQueryFriendList";
+import { useMutateTransferPet } from "@/hooks/useMutateTransferPet";
+import { useMutateListPet } from "@/hooks/useMutateListPet";
+import { MIST_PER_SUI } from "@/constants/contract";
 
 import type { PetStruct } from "@/types/Pet";
 
@@ -66,6 +71,11 @@ export default function PetComponent({ pet }: PetDashboardProps) {
     useMutateWakeUpPet();
   const { mutate: mutateLevelUp, isPending: isLevelingUp } =
     useMutateCheckAndLevelUp();
+  const { data: friendList } = useQueryFriendList();
+  const { mutate: transferPet, isPending: isTransferring } = useMutateTransferPet();
+  const [selectedFriend, setSelectedFriend] = useState<string>("");
+  const { mutate: listPet, isPending: isListing } = useMutateListPet();
+  const [priceSui, setPriceSui] = useState<string>("");
 
   useEffect(() => {
     setDisplayStats(pet.stats);
@@ -234,6 +244,58 @@ export default function PetComponent({ pet }: PetDashboardProps) {
               />
             </div>
           </div>
+          {/* List for sale */}
+          <div className="space-y-2 pt-2">
+            <label className="text-sm font-medium">List for sale (SUI)</label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="0.2"
+                min="0"
+                value={priceSui}
+                onChange={(e) => setPriceSui(e.currentTarget.value)}
+              />
+              <Button
+                onClick={() => {
+                  const v = Number(priceSui);
+                  if (!isFinite(v) || v <= 0) return;
+                  const priceMist = BigInt(Math.floor(v * Number(MIST_PER_SUI)));
+                  listPet({ petId: pet.id, priceMist });
+                }}
+                disabled={isListing || !priceSui}
+                className="whitespace-nowrap"
+              >
+                {isListing ? "Listing..." : "List"}
+              </Button>
+            </div>
+          </div>
+          {/* Transfer to friend */}
+          {friendList && friendList.friends.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <label className="text-sm font-medium">Transfer to friend</label>
+              <div className="flex gap-2">
+                <select
+                  className="border px-2 py-1 flex-1"
+                  value={selectedFriend}
+                  onChange={(e) => setSelectedFriend(e.currentTarget.value)}
+                >
+                  <option value="">Select friend...</option>
+                  {friendList.friends.map((f) => (
+                    <option key={f.addr} value={f.addr}>
+                      {f.alias || f.addr}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={() => selectedFriend && transferPet({ petId: pet.id, to: selectedFriend })}
+                  disabled={!selectedFriend || isTransferring}
+                  className="whitespace-nowrap bg-rose-600 hover:bg-rose-700"
+                >
+                  {isTransferring ? "Transferring..." : "Transfer"}
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="col-span-2 pt-2">
             {pet.isSleeping ? (
               <Button

@@ -11,16 +11,22 @@ import { Input } from "@/components/ui/input";
 import { useMutateAdoptPet } from "@/hooks/useMutateAdoptPet";
 import { Loader2Icon } from "lucide-react";
 
-const INTIAAL_PET_IMAGE_URL =
-  "https://tan-kind-lizard-741.mypinata.cloud/ipfs/bafkreidkhjpthergw2tcg6u5r344shgi2cdg5afmhgpf5bv34vqfrr7hni";
+const IMAGE_CHOICES = [
+  "https://media.tenor.com/gSl1GTJY-NcAAAAM/rhobh-cat.gif",
+  "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUya2U5ODF3bDFmZ2o4YjJuYmc0a3Q2MGtyNDNkaDU3dHZ6ZzczOXJvYiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9EP5BndVp9W4AsBcz7/giphy.gif",
+  "https://media.tenor.com/CGIHMXu6m_4AAAAM/funny.gif",
+  "https://i.pinimg.com/originals/c5/ee/51/c5ee5152fd8575cd966fa258addca1a1.gif",
+  "https://i.pinimg.com/originals/6c/95/c6/6c95c607ac6f8fe776fe6a7068cef76e.gif"
+];
 
 export default function AdoptComponent() {
   const [petName, setPetName] = useState("");
+  const [imageUrl, setImageUrl] = useState<string>(IMAGE_CHOICES[0]);
   const { mutate: mutateAdoptPet, isPending: isAdopting } = useMutateAdoptPet();
 
   const handleAdoptPet = () => {
-    if (!petName.trim()) return;
-    mutateAdoptPet({ name: petName });
+    if (!petName.trim() || !imageUrl) return;
+    mutateAdoptPet({ name: petName, imageUrl });
   };
 
   return (
@@ -30,12 +36,24 @@ export default function AdoptComponent() {
         <CardDescription>A new friend awaits!</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div>
+        <div className="space-y-2">
           <img
-            src={INTIAAL_PET_IMAGE_URL}
+            src={imageUrl}
             alt="Your new pet"
             className="w-40 h-40 mx-auto image-rendering-pixelated bg-secondary p-2 border-2 border-primary"
           />
+          <div className="grid grid-cols-3 gap-2">
+            {IMAGE_CHOICES.map((url) => (
+              <button
+                key={url}
+                onClick={() => setImageUrl(url)}
+                className={`border ${imageUrl === url ? "ring-2 ring-primary" : ""}`}
+                title={url}
+              >
+                <img src={url} className="w-full h-16 object-cover" />
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -52,7 +70,7 @@ export default function AdoptComponent() {
         <div>
           <Button
             onClick={handleAdoptPet}
-            disabled={!petName.trim() || isAdopting}
+            disabled={!petName.trim() || !imageUrl || isAdopting}
             className="w-full text-lg py-6 border-2 border-primary shadow-hard-sm hover:translate-x-0.5 hover:translate-y-0.5"
           >
             {isAdopting ? (
