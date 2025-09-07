@@ -6,6 +6,8 @@ use sui::{clock::{Self, Clock}, test_scenario::{Self, Scenario}};
 use 0x0::tamagosui;
 
 const USER: address = @0xDEAD;
+const ALICE: address = @0xA11CE;
+const BOB: address = @0xB0B;
 
 fun setup_pet(scenario: &mut Scenario) {
     // Initialize the module
@@ -26,7 +28,12 @@ fun setup_pet(scenario: &mut Scenario) {
     scenario.next_tx(USER);
     {
         let clock = scenario.take_shared<Clock>();
-        tamagosui::adopt_pet(string::utf8(b"Fluffy"), &clock, scenario.ctx());
+        tamagosui::adopt_pet(
+            string::utf8(b"Fluffy"),
+            string::utf8(b"https://example.com/pet.gif"),
+            &clock,
+            scenario.ctx()
+        );
         test_scenario::return_shared(clock);
     };
     
@@ -57,6 +64,42 @@ fun test_adopt_pet() {
         assert!(pet.get_pet_happiness() == 50, 7);
         assert!(pet.get_pet_hunger() == 40, 8);
         scenario.return_to_sender(pet);
+    };
+
+    scenario.end();
+}
+
+#[test]
+fun test_friend_list_add_view_remove() {
+    let mut scenario = test_scenario::begin(USER);
+
+    // Create FriendList object
+    scenario.next_tx(USER);
+    {
+        tamagosui::create_friend_list(scenario.ctx());
+    };
+
+    // Add ALICE and BOB
+    scenario.next_tx(USER);
+    {
+        let mut list = scenario.take_from_sender<tamagosui::FriendList>();
+    tamagosui::add_friend(&mut list, string::utf8(b"Alice"), ALICE, scenario.ctx());
+    tamagosui::add_friend(&mut list, string::utf8(b"Bob"), BOB, scenario.ctx());
+        assert!(tamagosui::friends_len(&list) == 2, 1);
+        assert!(tamagosui::has_friend(&list, ALICE), 2);
+        assert!(tamagosui::has_friend(&list, BOB), 3);
+        scenario.return_to_sender(list);
+    };
+
+    // Remove ALICE and check
+    scenario.next_tx(USER);
+    {
+        let mut list = scenario.take_from_sender<tamagosui::FriendList>();
+        tamagosui::remove_friend(&mut list, ALICE);
+        assert!(tamagosui::friends_len(&list) == 1, 4);
+        assert!(!tamagosui::has_friend(&list, ALICE), 5);
+        assert!(tamagosui::has_friend(&list, BOB), 6);
+        scenario.return_to_sender(list);
     };
 
     scenario.end();
